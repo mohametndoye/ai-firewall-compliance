@@ -1,0 +1,38 @@
+version: "3.9"
+
+services:
+  firewall:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://firewall:firewall@db:5432/ai_firewall
+    env_file:
+      # Optionnel : créer un .env (voir .env.example) pour vos clés API réelles
+      # (OPENAI_API_KEY, ANTHROPIC_API_KEY, AI_FIREWALL_CLASSIFIER_*). Le firewall
+      # démarre très bien sans ce fichier (mode simulé, 2e couche désactivée).
+      - path: .env
+        required: false
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:16
+    restart: always
+    environment:
+      POSTGRES_USER: firewall
+      POSTGRES_PASSWORD: firewall
+      POSTGRES_DB: ai_firewall
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U firewall -d ai_firewall"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  pgdata:

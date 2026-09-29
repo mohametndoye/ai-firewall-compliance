@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+venv/
+*.db
+audit_log.jsonl
+.env
+node_modules/
+dist/

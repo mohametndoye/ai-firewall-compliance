@@ -1,0 +1,53 @@
+:root {
+  --bg: #12161f;
+  --panel: #1a2130;
+  --panel-border: #262f42;
+  --text: #e7eaf0;
+  --text-muted: #8b93a7;
+  --accent-safe: #34d399;
+  --accent-warn: #f5a623;
+  --accent-danger: #f0625a;
+  --accent-info: #6ea8fe;
+  --accent-purple: #b38af9;
+
+  --font-ui: "IBM Plex Sans", -apple-system, sans-serif;
+  --font-mono: "IBM Plex Mono", "SFMono-Regular", monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background:
+    radial-gradient(1100px 480px at 12% -10%, color-mix(in srgb, var(--accent-info) 7%, transparent), transparent),
+    radial-gradient(900px 420px at 100% 0%, color-mix(in srgb, var(--accent-purple) 6%, transparent), transparent),
+    var(--bg);
+  background-attachment: fixed;
+  color: var(--text);
+  font-family: var(--font-ui);
+  -webkit-font-smoothing: antialiased;
+  letter-spacing: -0.005em;
+}
+
+button,
+input {
+  font-family: inherit;
+}
+
+::selection {
+  background: var(--accent-warn);
+  color: #12161f;
+}
+
+*:focus-visible {
+  outline: 2px solid var(--accent-info);
+  outline-offset: 2px;
+}

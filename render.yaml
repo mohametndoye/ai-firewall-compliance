@@ -1,0 +1,40 @@
+# Déploiement Render en un clic ("Blueprint") pour le backend (proxy) + PostgreSQL.
+# Usage : sur render.com, "New +" -> "Blueprint" -> pointer vers ce dépôt Git.
+# Render détecte ce fichier et propose de créer les deux ressources ci-dessous.
+#
+# Le tableau de bord (dashboard/) n'est PAS inclus ici : c'est un site statique,
+# il se déploie séparément sur Vercel (voir dashboard/vercel.json et le README).
+
+databases:
+  - name: ai-firewall-db
+    plan: free
+    databaseName: ai_firewall
+    user: firewall
+
+services:
+  - type: web
+    name: ai-firewall-backend
+    runtime: python
+    plan: free
+    region: oregon
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: ai-firewall-db
+          property: connectionString
+      - key: AI_FIREWALL_FAILURE_POLICY
+        value: fail_closed
+      # Clés à renseigner manuellement dans le tableau de bord Render (Settings ->
+      # Environment) après la création du service — jamais commitées dans le dépôt.
+      # Sans elles, le proxy fonctionne en mode simulé et la 2e couche reste inactive.
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: AI_FIREWALL_CLASSIFIER_PROVIDER
+        sync: false
+      - key: AI_FIREWALL_CLASSIFIER_API_KEY
+        sync: false
