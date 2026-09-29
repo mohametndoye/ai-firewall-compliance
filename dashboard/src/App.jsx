@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import Tester from "./Tester.jsx";
+import ChatApp from "./ChatApp.jsx";
 import "./console.css";
+import Tester from "./Tester.jsx";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const REFRESH_MS = 3000;
@@ -110,6 +111,7 @@ function LayersBadge({ health, loading }) {
 
 export default function App() {
   const { stats, events, health, connectionError, loading, refresh } = useFirewallData();
+  const [view, setView] = useState("employee"); // "employee" | "admin"
 
   return (
     <div className="console">
@@ -118,7 +120,7 @@ export default function App() {
           <span className="brand-mark" aria-hidden="true">◆</span>
           <div>
             <h1>AI Firewall &amp; Compliance</h1>
-            <p className="subtitle">console de supervision · proxy IA — projet INF4173</p>
+            <p className="subtitle">projet INF4173 — {view === "employee" ? "vue employé" : "console de supervision sécurité"}</p>
           </div>
         </div>
         <div className="console-header__badges">
@@ -127,58 +129,85 @@ export default function App() {
         </div>
       </header>
 
+      <nav className="view-tabs" role="tablist" aria-label="Choisir la vue">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={view === "employee"}
+          className={`view-tab ${view === "employee" ? "view-tab--active" : ""}`}
+          onClick={() => setView("employee")}
+        >
+          Application employé
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={view === "admin"}
+          className={`view-tab ${view === "admin" ? "view-tab--active" : ""}`}
+          onClick={() => setView("admin")}
+        >
+          Console sécurité
+        </button>
+      </nav>
+
       {connectionError && (
         <div className="banner-error">
           Impossible de joindre l'API à {API_URL}. Vérifiez que le proxy tourne (uvicorn app.main:app --reload).
         </div>
       )}
 
-      <section className="stat-strip" aria-label="Statistiques globales">
-        <StatCell value={stats?.total_requests} label="requêtes totales" />
-        <StatCell value={stats?.allowed} label="autorisées" />
-        <StatCell value={stats?.sanitized} label="assainies (PII)" />
-        <StatCell value={stats?.blocked_injection} label="bloquées · injection" />
-        <StatCell value={stats?.blocked_pii} label="bloquées · PII" />
-        <StatCell value={stats?.errors} label="erreurs" />
-      </section>
+      {view === "employee" ? (
+        <ChatApp />
+      ) : (
+        <>
+          <section className="stat-strip" aria-label="Statistiques globales">
+            <StatCell value={stats?.total_requests} label="requêtes totales" />
+            <StatCell value={stats?.allowed} label="autorisées" />
+            <StatCell value={stats?.sanitized} label="assainies (PII)" />
+            <StatCell value={stats?.blocked_injection} label="bloquées · injection" />
+            <StatCell value={stats?.blocked_pii} label="bloquées · PII" />
+            <StatCell value={stats?.errors} label="erreurs" />
+          </section>
 
-      <div className="two-col">
-        <Tester onSent={refresh} />
+          <div className="two-col">
+            <Tester onSent={refresh} />
 
-        <section className="log-panel">
-          <div className="log-panel__header">
-            <h2>Journal d'événements</h2>
-            <span className="live-dot" aria-hidden="true" />
-            <span className="live-label">en direct</span>
-          </div>
-
-          {events.length === 0 && !loading ? (
-            <div className="empty-state">
-              Aucun événement pour l'instant. Utilisez le panneau « Tester une requête » à gauche pour envoyer votre premier appel.
-            </div>
-          ) : (
-            <div className="log-table" role="table">
-              <div className="log-row log-row--head" role="row">
-                <span>heure</span>
-                <span>requête</span>
-                <span>événement</span>
-                <span>détail</span>
+            <section className="log-panel">
+              <div className="log-panel__header">
+                <h2>Journal d'événements</h2>
+                <span className="live-dot" aria-hidden="true" />
+                <span className="live-label">en direct</span>
               </div>
-              {events.map((e) => {
-                const meta = EVENT_LABELS[e.event_type] || { label: e.event_type, color: "var(--text-muted)" };
-                return (
-                  <div className="log-row" role="row" key={e.id} style={{ borderLeftColor: meta.color }}>
-                    <span className="mono">{formatTime(e.timestamp)}</span>
-                    <span className="mono muted">{e.request_id.slice(0, 8)}</span>
-                    <span style={{ color: meta.color }}>{meta.label}</span>
-                    <span className="muted">{e.detail}</span>
+
+              {events.length === 0 && !loading ? (
+                <div className="empty-state">
+                  Aucun événement pour l'instant. Utilisez le panneau « Tester une requête » à gauche, ou l'application employé, pour envoyer votre premier appel.
+                </div>
+              ) : (
+                <div className="log-table" role="table">
+                  <div className="log-row log-row--head" role="row">
+                    <span>heure</span>
+                    <span>requête</span>
+                    <span>événement</span>
+                    <span>détail</span>
                   </div>
-                );
-              })}
-            </div>
-          )}
-        </section>
-      </div>
+                  {events.map((e) => {
+                    const meta = EVENT_LABELS[e.event_type] || { label: e.event_type, color: "var(--text-muted)" };
+                    return (
+                      <div className="log-row" role="row" key={e.id} style={{ borderLeftColor: meta.color }}>
+                        <span className="mono">{formatTime(e.timestamp)}</span>
+                        <span className="mono muted">{e.request_id.slice(0, 8)}</span>
+                        <span style={{ color: meta.color }}>{meta.label}</span>
+                        <span className="muted">{e.detail}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </section>
+          </div>
+        </>
+      )}
     </div>
   );
 }
