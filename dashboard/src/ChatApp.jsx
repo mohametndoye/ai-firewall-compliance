@@ -52,8 +52,8 @@ export default function ChatApp() {
     { role: "assistant", text: "Bonjour ! Posez-moi une question — ce message passera par le pare-feu avant d'atteindre le modèle." },
   ]);
   const [input, setInput] = useState("");
-  const [provider, setProvider] = useState("openai");
-  const [model, setModel] = useState("gpt-4");
+  const [provider, setProvider] = useState("anthropic");
+  const [model, setModel] = useState("claude-haiku-4-5-20251001");
   const [showSettings, setShowSettings] = useState(false);
   const [loading, setLoading] = useState(false);
   const bottomRef = useRef(null);
