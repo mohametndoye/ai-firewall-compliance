@@ -43,6 +43,11 @@ def _try_load_presidio():
     global _presidio_analyzer, _presidio_available
     if _presidio_analyzer is not None or _presidio_available:
         return
+    from app.config import PRESIDIO_ENABLED
+    if not PRESIDIO_ENABLED:
+        # Désactivé explicitement (ex. contrainte de mémoire sur un hébergeur gratuit) ;
+        # voir AI_FIREWALL_PRESIDIO_ENABLED dans app/config.py. On reste sur les regex.
+        return
     try:
         from presidio_analyzer import AnalyzerEngine
         from presidio_analyzer.nlp_engine import NlpEngineProvider
@@ -119,4 +124,3 @@ def presidio_status() -> dict:
     """Utilisé par /health pour indiquer si la détection contextuelle est active."""
     _try_load_presidio()
     return {"presidio_available": _presidio_available}
-

@@ -57,3 +57,11 @@ CLASSIFIER_MODELS = {
 # Score de confiance (0-100) au-delà duquel le verdict du classifieur bloque la requête.
 CLASSIFIER_SUSPICION_THRESHOLD = int(os.getenv("AI_FIREWALL_CLASSIFIER_THRESHOLD", "60"))
 CLASSIFIER_TIMEOUT_S = float(os.getenv("AI_FIREWALL_CLASSIFIER_TIMEOUT_S", "6"))
+
+# Presidio (NER via spaCy) charge un modèle de langue en mémoire (~200-300 Mo) en plus
+# du reste de l'application — cela dépasse le quota RAM des plans gratuits de certains
+# hébergeurs (ex. Render free : 512 Mo au total). Cette option permet de désactiver
+# explicitement Presidio pour ne garder que la détection PII par regex (email,
+# téléphone, carte de crédit, NAS/SSN), qui reste pleinement fonctionnelle et
+# gratuite en ressources. Par défaut activé (comportement inchangé en local/Docker).
+PRESIDIO_ENABLED = os.getenv("AI_FIREWALL_PRESIDIO_ENABLED", "true").strip().lower() not in ("false", "0", "no")
