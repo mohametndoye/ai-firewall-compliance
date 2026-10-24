@@ -141,6 +141,8 @@ app/
   main.py              # Point d'entrée FastAPI, orchestration du pipeline
   config.py            # Configuration (latence max, politique d'échec, clés API, DB, classifieur)
   db.py                # Connexion et modèles SQLAlchemy (PostgreSQL/SQLite)
+  metrics.py           # Chronométrage par étape et statistiques de latence (onglet Analyse)
+  redteam.py           # Campagne Red Team lancée depuis le tableau de bord (couche 1, couches 1 + 2)
   detectors/
     pii.py             # Détection PII : regex + Microsoft Presidio (modèle français)
     injection.py       # Détection prompt injection / jailbreak — 1re couche (règles)
@@ -155,9 +157,11 @@ tests/
 scripts/
   redteam_report.py    # Mesure détection/faux positifs/latence sur le corpus principal
   holdout_eval.py      # Mesure sur un lot hors échantillon (a ou b)
+  charge.py            # Test de charge : envoie N requêtes variées et affiche moyenne/P50/P95/P99
 dashboard/
   src/App.jsx          # Console de supervision React (stats + journal + badge des couches)
   src/Tester.jsx        # Panneau de test avec scénarios prêts à l'emploi
+  src/Analysis.jsx      # Onglet Analyse : performances, tableau de bord, laboratoire Red Team
   src/console.css
   vercel.json          # Config de déploiement Vercel
 docs/
@@ -178,7 +182,8 @@ render.yaml               # Déploiement backend sur Render (Blueprint)
 - [x] Tableau de bord d'administration (React, temps réel, badge des couches de défense)
 - [x] Tests de pénétration (red teaming) sur le détecteur d'injection — voir `docs/rapport_red_team.md`
 - [x] Fichiers de déploiement prêts (Docker, Render, Vercel — voir « Déploiement »)
-- [ ] Mesure de la latence réelle ajoutée avec de vraies clés API (voir note ci-dessous)
+- [x] Mesure de la latence par étape (règles, IA, PII, audit, LLM cible exclu) et onglet Analyse
+- [ ] Mesure de la latence réelle ajoutée avec de vraies clés API (`python scripts/charge.py --url <backend>`)
 - [ ] Déploiement pilote effectif (les fichiers sont prêts, le déploiement lui-même reste à faire par l'équipe)
 - [ ] Mesure du gain réel de la 2e couche sur le lot B avec une vraie clé API (voir « Limites »)
 
@@ -231,6 +236,28 @@ Pour reproduire les mesures :
 python scripts/redteam_report.py        # corpus principal (1re couche seule)
 python scripts/holdout_eval.py a         # lot A (1re couche seule)
 python scripts/holdout_eval.py b         # lot B (1re couche seule — la mesure qui compte)
+```
+
+## Onglet Analyse — mesurer les performances et la détection
+
+Le tableau de bord a un 3e onglet, **Analyse**, alimenté par trois routes :
+
+| Route | Contenu |
+|---|---|
+| `GET /v1/admin/metrics/performance?limit=1000` | Latence ajoutée par le pare-feu (moyenne, P50, P95, P99), hors couche IA et hors LLM cible, comparée à la cible de 50 ms ; détail par étape |
+| `GET /v1/admin/metrics/summary?hours=24&bucket_minutes=60` | Répartition des décisions et nombre de requêtes par tranche de temps |
+| `POST /v1/admin/redteam/run?layer2=false` | Rejoue les trois corpus de `tests/` ; `layer2=true` ajoute le classifieur IA (environ 150 appels payants, une campagne par minute au plus) |
+
+Chaque requête est chronométrée étape par étape (`app/metrics.py`) et les mesures sont
+stockées dans une table séparée, `request_metrics`, pour ne pas toucher au format du journal
+d'audit chaîné. `added_latency_ms` dans la réponse du proxy exclut désormais le temps du LLM
+cible ; le détail est dans `latency_breakdown`.
+
+Pour obtenir des percentiles fiables :
+
+```bash
+python scripts/charge.py --n 300                      # en local
+python scripts/charge.py --n 300 --url https://<backend>.onrender.com
 ```
 
 ## Note technique — latence
