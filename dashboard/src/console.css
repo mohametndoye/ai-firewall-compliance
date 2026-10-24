@@ -630,6 +630,11 @@
   font-size: 0.85rem;
 }
 
+.result-breakdown {
+  margin: 6px 0 0;
+  font-size: 0.74rem;
+}
+
 .result-completion {
   margin-top: 10px;
   padding-top: 10px;
