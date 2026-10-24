@@ -139,3 +139,19 @@ def test_blocked_request_skips_later_stages():
     )
     lat = r.json()["latency_breakdown"]
     assert "rules" in lat and "llm" not in lat and "pii" not in lat
+
+def test_metrics_performance_endpoint():
+    r = client.get("/v1/admin/metrics/performance")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["window"] >= 1
+    assert body["target_ms"] == 50
+    assert body["firewall"]["p95"] is not None
+    assert body["stages"]["rules"]["count"] >= 1
+    assert body["meets_target"] is True
+
+def test_metrics_summary_counts_match_stats():
+    summary = client.get("/v1/admin/metrics/summary?hours=1&bucket_minutes=5").json()
+    stats = client.get("/v1/admin/stats").json()
+    assert summary["total"] == stats["total_requests"]
+    assert sum(sum(b[d] for d in summary["by_decision"]) for b in summary["timeline"]) == summary["total"]

@@ -81,6 +81,19 @@ def admin_events(limit: int = 50):
     return get_recent_events(limit=limit)
 
 
+@app.get("/v1/admin/metrics/performance")
+def admin_metrics_performance(limit: int = 1000):
+    """Latence du pare-feu (moyenne, P50, P95, P99) et détail par étape,
+    sur les `limit` dernières requêtes. Le temps du LLM cible est exclu."""
+    return metrics.performance(limit=max(1, min(limit, 10000)))
+
+
+@app.get("/v1/admin/metrics/summary")
+def admin_metrics_summary(hours: int = 24, bucket_minutes: int = 60):
+    """Répartition des décisions et nombre de requêtes par tranche de temps."""
+    return metrics.summary(hours=hours, bucket_minutes=bucket_minutes)
+
+
 @app.post("/v1/proxy/chat", response_model=ProxyResponse)
 async def proxy_chat(req: ProxyRequest):
     request_id = str(uuid.uuid4())
