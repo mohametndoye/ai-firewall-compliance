@@ -16,7 +16,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 
-from app import metrics
+from app import metrics, redteam
 from app.audit.logger import get_recent_events, get_stats, log_event
 from app.config import FAILURE_POLICY, PROVIDER_API_KEYS, PROVIDER_BASE_URLS
 from app.db import init_db
@@ -92,6 +92,22 @@ def admin_metrics_performance(limit: int = 1000):
 def admin_metrics_summary(hours: int = 24, bucket_minutes: int = 60):
     """Répartition des décisions et nombre de requêtes par tranche de temps."""
     return metrics.summary(hours=hours, bucket_minutes=bucket_minutes)
+
+
+@app.post("/v1/admin/redteam/run")
+async def admin_redteam_run(layer2: bool = False):
+    """Rejoue les corpus d'attaques. layer2=true ajoute le classifieur IA
+    (appels payants, limité à une exécution par minute)."""
+    try:
+        return await redteam.run(layer2=layer2)
+    except redteam.RedTeamUnavailable as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+
+
+@app.get("/v1/admin/redteam/last")
+def admin_redteam_last():
+    """Dernier résultat Red Team calculé (null si aucune campagne depuis le démarrage)."""
+    return redteam.last()
 
 
 @app.post("/v1/proxy/chat", response_model=ProxyResponse)

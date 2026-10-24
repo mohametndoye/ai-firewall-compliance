@@ -119,9 +119,6 @@ def test_admin_events_endpoint():
 # ---------------------------------------------------------------- onglet Analyse
 
 
-def test_stats_include_ia_blocks():
-    assert "blocked_injection_ia" in client.get("/v1/admin/stats").json()
-
 def test_proxy_reports_latency_breakdown_without_llm():
     r = client.post("/v1/proxy/chat", json={"provider": "openai", "model": "gpt-4", "prompt": "Bonjour !"})
     body = r.json()
@@ -132,6 +129,7 @@ def test_proxy_reports_latency_breakdown_without_llm():
     assert body["added_latency_ms"] == lat["firewall"]
     assert abs(lat["total"] - lat["llm"] - lat["firewall"]) < 0.05
 
+
 def test_blocked_request_skips_later_stages():
     r = client.post(
         "/v1/proxy/chat",
@@ -139,6 +137,7 @@ def test_blocked_request_skips_later_stages():
     )
     lat = r.json()["latency_breakdown"]
     assert "rules" in lat and "llm" not in lat and "pii" not in lat
+
 
 def test_metrics_performance_endpoint():
     r = client.get("/v1/admin/metrics/performance")
@@ -150,8 +149,46 @@ def test_metrics_performance_endpoint():
     assert body["stages"]["rules"]["count"] >= 1
     assert body["meets_target"] is True
 
+
 def test_metrics_summary_counts_match_stats():
     summary = client.get("/v1/admin/metrics/summary?hours=1&bucket_minutes=5").json()
     stats = client.get("/v1/admin/stats").json()
     assert summary["total"] == stats["total_requests"]
     assert sum(sum(b[d] for d in summary["by_decision"]) for b in summary["timeline"]) == summary["total"]
+
+
+def test_stats_include_ia_blocks():
+    assert "blocked_injection_ia" in client.get("/v1/admin/stats").json()
+
+
+def test_redteam_layer1_matches_documented_results():
+    r = client.post("/v1/admin/redteam/run")
+    assert r.status_code == 200
+    corpora = {c["key"]: c for c in r.json()["corpora"]}
+    # Chiffres publiés dans docs/rapport_red_team.md et docs/mesure_impartiale_holdout.md
+    assert corpora["principal"]["layer1"] == {"detected": 88, "false_positives": 0}
+    assert corpora["holdout_b"]["layer1"]["detected"] == 7
+    assert corpora["holdout_b"]["combined"] is None  # couche 2 non demandée
+    assert client.get("/v1/admin/redteam/last").json()["corpora"]
+
+
+def test_redteam_layer2_combines_with_rules(monkeypatch):
+    """Couche 2 simulée : elle bloque tout ce qui lui est soumis. Les attaques
+    deviennent toutes détectées et les messages légitimes deviennent des faux
+    positifs : on vérifie ainsi le calcul combiné, sans appel réseau."""
+    from app import redteam
+    from app.detectors import llm_classifier
+
+    async def fake_evaluate(text):
+        return llm_classifier.ClassifierVerdict(enabled=True, suspicious=True, confidence=99, latency_ms=1.0)
+
+    monkeypatch.setattr(llm_classifier, "is_enabled", lambda: True)
+    monkeypatch.setattr(llm_classifier, "evaluate", fake_evaluate)
+    monkeypatch.setattr(redteam, "_last_layer2_run", 0.0)
+
+    body = client.post("/v1/admin/redteam/run?layer2=true").json()
+    b = {c["key"]: c for c in body["corpora"]}["holdout_b"]
+    assert body["layer2_used"] is True
+    assert b["combined"]["detected"] == b["attacks"]
+    assert b["combined"]["false_positives"] == b["benign"]
+    assert b["latency"]["classifier"]["count"] == (b["attacks"] - b["layer1"]["detected"]) + b["benign"]

@@ -15,6 +15,8 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app ./app
+# Corpus d'attaques rejoués par l'onglet Analyse (route /v1/admin/redteam/run)
+COPY tests/redteam_*.py ./tests/
 
 EXPOSE 8000
 
