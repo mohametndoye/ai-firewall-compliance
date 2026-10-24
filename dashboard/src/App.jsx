@@ -164,7 +164,8 @@ export default function App() {
             <StatCell value={stats?.total_requests} label="requêtes totales" />
             <StatCell value={stats?.allowed} label="autorisées" />
             <StatCell value={stats?.sanitized} label="assainies (PII)" />
-            <StatCell value={stats?.blocked_injection} label="bloquées · injection" />
+            <StatCell value={stats?.blocked_injection} label="bloquées · règles" />
+            <StatCell value={stats?.blocked_injection_ia} label="bloquées · IA" />
             <StatCell value={stats?.blocked_pii} label="bloquées · PII" />
             <StatCell value={stats?.errors} label="erreurs" />
           </section>

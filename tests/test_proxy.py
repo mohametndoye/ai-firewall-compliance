@@ -114,3 +114,10 @@ def test_admin_events_endpoint():
     assert r.status_code == 200
     assert isinstance(r.json(), list)
     assert len(r.json()) <= 5
+
+
+# ---------------------------------------------------------------- onglet Analyse
+
+
+def test_stats_include_ia_blocks():
+    assert "blocked_injection_ia" in client.get("/v1/admin/stats").json()
