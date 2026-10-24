@@ -138,9 +138,25 @@ export default function Tester({ onSent }) {
             <span className="result-status" style={{ color: (STATUS_META[result.status] || {}).color }}>
               {(STATUS_META[result.status] || {}).label || result.status}
             </span>
-            <span className="muted mono">{result.added_latency_ms} ms</span>
+            <span className="muted mono" title="Temps ajouté par le pare-feu, temps du modèle exclu">
+              {result.added_latency_ms} ms
+            </span>
           </div>
           <p className="result-detail">{result.detail}</p>
+          {result.latency_breakdown && (
+            <p className="result-breakdown mono muted">
+              {[
+                ["règles", "rules"],
+                ["IA", "classifier"],
+                ["PII", "pii"],
+                ["audit", "audit"],
+                ["modèle (exclu)", "llm"],
+              ]
+                .filter(([, k]) => result.latency_breakdown[k] != null)
+                .map(([label, k]) => `${label} ${result.latency_breakdown[k]} ms`)
+                .join(" · ")}
+            </p>
+          )}
           {result.completion && (
             <div className="result-completion">
               <span className="field-label">Réponse du modèle (ou simulée)</span>

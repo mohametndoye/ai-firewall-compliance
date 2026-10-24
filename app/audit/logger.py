@@ -25,7 +25,7 @@ GENESIS_HASH = "0" * 64
 class AuditEntry:
     timestamp: float
     request_id: str
-    event_type: str  # "allowed" | "blocked_pii" | "blocked_injection" | "sanitized" | "error"
+    event_type: str  # "allowed" | "blocked_pii" | "blocked_injection" | "blocked_injection_ia" | "sanitized" | "error"
     detail: str
     prev_hash: str
     entry_hash: str = ""
@@ -102,6 +102,9 @@ def get_stats() -> dict:
             "sanitized": by_type.get("sanitized", 0),
             "blocked_pii": by_type.get("blocked_pii", 0),
             "blocked_injection": by_type.get("blocked_injection", 0),
+            # Bloquées par la 2e couche (classifieur IA). Absent auparavant : ces
+            # requêtes comptaient dans le total sans apparaître dans aucune carte.
+            "blocked_injection_ia": by_type.get("blocked_injection_ia", 0),
             "errors": by_type.get("error", 0),
             "chain_valid": verify_chain(),
         }
