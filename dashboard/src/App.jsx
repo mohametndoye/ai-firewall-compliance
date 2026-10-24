@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import Analysis from "./Analysis.jsx";
 import ChatApp from "./ChatApp.jsx";
 import "./console.css";
 import Tester from "./Tester.jsx";
@@ -111,7 +112,7 @@ function LayersBadge({ health, loading }) {
 
 export default function App() {
   const { stats, events, health, connectionError, loading, refresh } = useFirewallData();
-  const [view, setView] = useState("employee"); // "employee" | "admin"
+  const [view, setView] = useState("employee"); // "employee" | "admin" | "analysis"
 
   return (
     <div className="console">
@@ -120,7 +121,7 @@ export default function App() {
           <span className="brand-mark" aria-hidden="true">◆</span>
           <div>
             <h1>AI Firewall &amp; Compliance</h1>
-            <p className="subtitle">projet INF4173 — {view === "employee" ? "vue employé" : "console de supervision sécurité"}</p>
+            <p className="subtitle">projet INF4173 — {{ employee: "vue employé", admin: "console de supervision sécurité", analysis: "analyse des performances et de la détection" }[view]}</p>
           </div>
         </div>
         <div className="console-header__badges">
@@ -148,6 +149,15 @@ export default function App() {
         >
           Console sécurité
         </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={view === "analysis"}
+          className={`view-tab ${view === "analysis" ? "view-tab--active" : ""}`}
+          onClick={() => setView("analysis")}
+        >
+          Analyse
+        </button>
       </nav>
 
       {connectionError && (
@@ -156,9 +166,11 @@ export default function App() {
         </div>
       )}
 
+      {view === "analysis" && <Analysis classifierOn={!!health?.classifier_enabled} />}
+
       {view === "employee" ? (
         <ChatApp />
-      ) : (
+      ) : view === "analysis" ? null : (
         <>
           <section className="stat-strip" aria-label="Statistiques globales">
             <StatCell value={stats?.total_requests} label="requêtes totales" />
